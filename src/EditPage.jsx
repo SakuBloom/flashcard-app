@@ -7,7 +7,7 @@ import Papa from "papaparse"; // CSV読み込み用
 const EditPage = ({ cards, setCards }) => {
   const [newFront, setNewFront] = useState("");
   const [newBack, setNewBack] = useState("");
-  const [csvFile, setCsvFile] = useState(null); // CSVファイルの状態
+  const [selectedCards, setSelectedCards] = useState([]); // 選択されたカードを管理
 
   // Firestoreからカードデータを取得
   useEffect(() => {
@@ -51,28 +51,45 @@ const EditPage = ({ cards, setCards }) => {
     }
   };
 
-  // CSVファイル選択後にCSVをパースしてFirestoreに反映
+  // 複数の選択されたカードを削除
+  const deleteSelectedCards = async () => {
+    for (const cardId of selectedCards) {
+      try {
+        const cardDoc = doc(db, "cards", cardId);
+        await deleteDoc(cardDoc);
+        setCards(cards.filter((card) => card.id !== cardId));
+      } catch (error) {
+        console.error("Error deleting selected cards: ", error);
+      }
+    }
+    setSelectedCards([]); // 削除後に選択をクリア
+  };
+
+  // チェックボックスの選択状態を更新
+  const toggleCardSelection = (id) => {
+    setSelectedCards((prevSelectedCards) =>
+      prevSelectedCards.includes(id)
+        ? prevSelectedCards.filter((cardId) => cardId !== id)
+        : [...prevSelectedCards, id]
+    );
+  };
+
+  // CSVファイルからカードを読み込む
   const handleCSVUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    
-    setCsvFile(file); // ファイルをステートに保存
-  };
 
-  const handleCSVSubmit = () => {
-    if (!csvFile) return;
-
-    Papa.parse(csvFile, {
+    Papa.parse(file, {
+      header: true,
       complete: async (results) => {
         const newCards = results.data
-          .filter(row => row.front && row.back) // frontとbackが存在する行のみをフィルタリング
+          .filter(row => row.front && row.back)
           .map(row => ({
             front: row.front,
             back: row.back,
             checked: false,
           }));
 
-        // Firestoreに新しいカードを追加
         for (const card of newCards) {
           try {
             const docRef = await addDoc(collection(db, "cards"), card);
@@ -82,8 +99,6 @@ const EditPage = ({ cards, setCards }) => {
           }
         }
       },
-      header: true,  // CSVにヘッダーがある場合
-      skipEmptyLines: true,  // 空行をスキップ
     });
   };
 
@@ -91,47 +106,43 @@ const EditPage = ({ cards, setCards }) => {
     <div className="edit-page">
       <h2>カードの編集</h2>
 
-      <Link to="/" style={{ marginBottom: "10px", display: "block" }}>
-        <button>カード表示に戻る</button>
-      </Link>
-
-      <div className="manual-edit" style={{ marginBottom: "20px" }}>
-        <h3>手動編集</h3>
+      <div className="add-card">
         <input
           type="text"
           placeholder="表面"
           value={newFront}
           onChange={(e) => setNewFront(e.target.value)}
-          style={{ marginBottom: "10px" }}
         />
         <input
           type="text"
           placeholder="裏面"
           value={newBack}
           onChange={(e) => setNewBack(e.target.value)}
-          style={{ marginBottom: "10px" }}
         />
-        <button onClick={addCard} style={{ marginBottom: "10px" }}>追加</button>
+        <button onClick={addCard}>追加</button>
+        <input type="file" accept=".csv" onChange={handleCSVUpload} />
       </div>
 
-      <div className="csv-upload" style={{ marginBottom: "20px" }}>
-        <h3>CSV読込</h3>
-        <input type="file" accept=".csv" onChange={handleCSVUpload} style={{ marginBottom: "10px" }} />
-        {csvFile && <div>選択されたファイル: {csvFile.name}</div>}
-        <button onClick={handleCSVSubmit} style={{ marginBottom: "10px" }}>アップロード</button>
-      </div>
-
-      <div className="current-cards">
-        <h3>現在のカード一覧</h3>
+      <div className="card-list">
         <ul>
           {cards.map((card) => (
             <li key={card.id}>
+              <input
+                type="checkbox"
+                checked={selectedCards.includes(card.id)}
+                onChange={() => toggleCardSelection(card.id)}
+              />
               {card.front} - {card.back}
-              <button onClick={() => deleteCard(card.id)} style={{ marginLeft: "10px" }}>削除</button>
             </li>
           ))}
         </ul>
+
+        <button onClick={deleteSelectedCards}>まとめて削除</button>
       </div>
+
+      <Link to="/">
+        <button>カード表示に戻る</button>
+      </Link>
     </div>
   );
 };
