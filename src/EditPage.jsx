@@ -55,10 +55,14 @@ const EditPage = ({ cards, setCards }) => {
   const handleCSVUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
+    
     setCsvFile(file); // ファイルをステートに保存
+  };
 
-    Papa.parse(file, {
+  const handleCSVSubmit = () => {
+    if (!csvFile) return;
+
+    Papa.parse(csvFile, {
       complete: async (results) => {
         const newCards = results.data
           .filter(row => row.front && row.back) // frontとbackが存在する行のみをフィルタリング
@@ -114,7 +118,7 @@ const EditPage = ({ cards, setCards }) => {
         <h3>CSV読込</h3>
         <input type="file" accept=".csv" onChange={handleCSVUpload} style={{ marginBottom: "10px" }} />
         {csvFile && <div>選択されたファイル: {csvFile.name}</div>}
-        <button onClick={handleCSVUpload} style={{ marginBottom: "10px" }}>アップロード</button>
+        <button onClick={handleCSVSubmit} style={{ marginBottom: "10px" }}>アップロード</button>
       </div>
 
       <div className="current-cards">
