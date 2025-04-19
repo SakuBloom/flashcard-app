@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { db } from "./firebase";  // firebase.jsをインポート
+import { db } from "./firebase";
 import { collection, getDocs } from "firebase/firestore";
 
 const speak = (text) => {
@@ -31,7 +31,7 @@ const CardView = ({ cards, setCards }) => {
     }
   }, [index, flipped, currentCard]);
 
-  // カードデータの取得（Firestoreから）
+  // Firestoreからカードデータ取得
   useEffect(() => {
     const fetchCards = async () => {
       const cardsCollection = collection(db, "cards");
@@ -48,9 +48,10 @@ const CardView = ({ cards, setCards }) => {
       setIndex(index + 1);
       setFlipped(false);
     } else {
-      // 最後のカードに到達したらシャッフルして最初のカードに戻す
+      // 最後のカードに到達 → シャッフルしてリセット
       setShuffledCards([...cards].sort(() => Math.random() - 0.5));
       setIndex(0);
+      setFlipped(false);
     }
   };
 
@@ -61,8 +62,16 @@ const CardView = ({ cards, setCards }) => {
     }
   };
 
+  // カードがない場合の表示
   if (!currentCard) {
-    return <div>カードがありません</div>;
+    return (
+      <div className="card-container">
+        <div>カードがありません</div>
+        <Link to="/edit">
+          <button className="edit-button">編集</button>
+        </Link>
+      </div>
+    );
   }
 
   return (
@@ -71,7 +80,7 @@ const CardView = ({ cards, setCards }) => {
         {flipped ? currentCard.back : currentCard.front}
       </div>
       <div className="card-navigation">
-        <p>{index + 1} / {shuffledCards.length}</p> {/* 現在のカード番号を表示 */}
+        <p>{index + 1} / {shuffledCards.length}</p>
         <div className="buttons">
           <button onClick={prev}>← 戻る</button>
           <button onClick={next}>進む →</button>
