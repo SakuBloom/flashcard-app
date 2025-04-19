@@ -40,29 +40,23 @@ const EditPage = ({ cards, setCards }) => {
     }
   };
 
-  // Firestoreからカードを削除
-  const deleteCard = async (id) => {
-    try {
-      const cardDoc = doc(db, "cards", id);
-      await deleteDoc(cardDoc);
-      setCards(cards.filter((card) => card.id !== id));
-    } catch (error) {
-      console.error("Error deleting card: ", error);
-    }
-  };
-
   // 複数の選択されたカードを削除
   const deleteSelectedCards = async () => {
-    for (const cardId of selectedCards) {
-      try {
-        const cardDoc = doc(db, "cards", cardId);
-        await deleteDoc(cardDoc);
-        setCards(cards.filter((card) => card.id !== cardId));
-      } catch (error) {
-        console.error("Error deleting selected cards: ", error);
-      }
+    try {
+      // 削除処理を一度に行う
+      await Promise.all(
+        selectedCards.map(async (cardId) => {
+          const cardDoc = doc(db, "cards", cardId);
+          await deleteDoc(cardDoc);
+        })
+      );
+
+      // 削除後にカードの状態を更新
+      setCards(cards.filter((card) => !selectedCards.includes(card.id)));
+      setSelectedCards([]); // 削除後に選択をクリア
+    } catch (error) {
+      console.error("Error deleting selected cards: ", error);
     }
-    setSelectedCards([]); // 削除後に選択をクリア
   };
 
   // チェックボックスの選択状態を更新
