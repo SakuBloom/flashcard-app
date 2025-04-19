@@ -63,6 +63,10 @@ const EditPage = ({ cards, setCards }) => {
     setSelectedCards(allIds);
   };
 
+  const deselectAllCards = () => {
+    setSelectedCards([]);
+  };
+
   const handleCSVUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -138,9 +142,12 @@ const EditPage = ({ cards, setCards }) => {
           <button onClick={addCard}>追加</button>
           <input type="file" accept=".csv" onChange={handleCSVUpload} />
         </div>
+
+        {/* ボタンを修正・追加 */}
         <div style={{ marginTop: "10px" }}>
           <button onClick={deleteSelectedCards}>まとめて削除</button>
           <button onClick={selectAllCards} style={{ marginLeft: "10px" }}>全て選択</button>
+          <button onClick={deselectAllCards} style={{ marginLeft: "10px" }}>選択解除</button>
         </div>
       </div>
 
