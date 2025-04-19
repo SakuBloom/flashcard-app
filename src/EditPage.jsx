@@ -1,15 +1,17 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { db } from "./firebase"; // firebase.jsをインポート
-import { collection, addDoc, deleteDoc, doc, getDocs } from "firebase/firestore";
-import Papa from "papaparse"; // CSV読み込み用
+import { db } from "./firebase";
+import { collection, addDoc, deleteDoc, doc, getDocs, updateDoc } from "firebase/firestore";
+import Papa from "papaparse";
 
 const EditPage = ({ cards, setCards }) => {
   const [newFront, setNewFront] = useState("");
   const [newBack, setNewBack] = useState("");
-  const [selectedCards, setSelectedCards] = useState([]); // 選択されたカードを管理
+  const [selectedCards, setSelectedCards] = useState([]);
+  const [editingCardId, setEditingCardId] = useState(null);
+  const [editFront, setEditFront] = useState("");
+  const [editBack, setEditBack] = useState("");
 
-  // Firestoreからカードデータを取得
   useEffect(() => {
     const fetchCards = async () => {
       const cardsCollection = collection(db, "cards");
@@ -21,15 +23,10 @@ const EditPage = ({ cards, setCards }) => {
     fetchCards();
   }, [setCards]);
 
-  // 新しいカードをFirestoreに追加
   const addCard = async () => {
     if (newFront && newBack) {
       try {
-        const newCard = {
-          front: newFront,
-          back: newBack,
-          checked: false,
-        };
+        const newCard = { front: newFront, back: newBack, checked: false };
         const docRef = await addDoc(collection(db, "cards"), newCard);
         setCards([...cards, { id: docRef.id, ...newCard }]);
         setNewFront("");
@@ -40,35 +37,32 @@ const EditPage = ({ cards, setCards }) => {
     }
   };
 
-  // 複数の選択されたカードを削除
   const deleteSelectedCards = async () => {
     try {
-      // 削除処理を一度に行う
       await Promise.all(
         selectedCards.map(async (cardId) => {
           const cardDoc = doc(db, "cards", cardId);
           await deleteDoc(cardDoc);
         })
       );
-
-      // 削除後にカードの状態を更新
       setCards(cards.filter((card) => !selectedCards.includes(card.id)));
-      setSelectedCards([]); // 削除後に選択をクリア
+      setSelectedCards([]);
     } catch (error) {
       console.error("Error deleting selected cards: ", error);
     }
   };
 
-  // チェックボックスの選択状態を更新
   const toggleCardSelection = (id) => {
-    setSelectedCards((prevSelectedCards) =>
-      prevSelectedCards.includes(id)
-        ? prevSelectedCards.filter((cardId) => cardId !== id)
-        : [...prevSelectedCards, id]
+    setSelectedCards(prev =>
+      prev.includes(id) ? prev.filter(cardId => cardId !== id) : [...prev, id]
     );
   };
 
-  // CSVファイルからカードを読み込む
+  const selectAllCards = () => {
+    const allIds = cards.map(card => card.id);
+    setSelectedCards(allIds);
+  };
+
   const handleCSVUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -96,47 +90,100 @@ const EditPage = ({ cards, setCards }) => {
     });
   };
 
-  return (
-    <div className="edit-page">
-      <h2>カードの編集</h2>
+  const startEditing = (card) => {
+    setEditingCardId(card.id);
+    setEditFront(card.front);
+    setEditBack(card.back);
+  };
 
-      <div className="add-card">
-        <input
-          type="text"
-          placeholder="表面"
-          value={newFront}
-          onChange={(e) => setNewFront(e.target.value)}
-        />
-        <input
-          type="text"
-          placeholder="裏面"
-          value={newBack}
-          onChange={(e) => setNewBack(e.target.value)}
-        />
-        <button onClick={addCard}>追加</button>
-        <input type="file" accept=".csv" onChange={handleCSVUpload} />
+  const saveEdit = async (id) => {
+    try {
+      const cardDoc = doc(db, "cards", id);
+      await updateDoc(cardDoc, { front: editFront, back: editBack });
+      setCards(cards.map(card =>
+        card.id === id ? { ...card, front: editFront, back: editBack } : card
+      ));
+      setEditingCardId(null);
+    } catch (error) {
+      console.error("Error updating card: ", error);
+    }
+  };
+
+  return (
+    <div className="edit-page" style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
+      {/* 固定ヘッダー */}
+      <div className="header" style={{
+        position: "sticky",
+        top: 0,
+        backgroundColor: "white",
+        padding: "10px",
+        zIndex: 100,
+        boxShadow: "0 2px 5px rgba(0,0,0,0.1)"
+      }}>
+        <h2>カードの編集</h2>
+        <Link to="/"><button>カード表示に戻る</button></Link>
+        <div style={{ marginTop: "10px" }}>
+          <input
+            type="text"
+            placeholder="表面"
+            value={newFront}
+            onChange={(e) => setNewFront(e.target.value)}
+          />
+          <input
+            type="text"
+            placeholder="裏面"
+            value={newBack}
+            onChange={(e) => setNewBack(e.target.value)}
+          />
+          <button onClick={addCard}>追加</button>
+          <input type="file" accept=".csv" onChange={handleCSVUpload} />
+        </div>
+        <div style={{ marginTop: "10px" }}>
+          <button onClick={deleteSelectedCards}>まとめて削除</button>
+          <button onClick={selectAllCards} style={{ marginLeft: "10px" }}>全て選択</button>
+        </div>
       </div>
 
-      <div className="card-list">
+      {/* スクロール可能なカード一覧 */}
+      <div className="card-list" style={{
+        overflowY: "auto",
+        flexGrow: 1,
+        padding: "10px"
+      }}>
         <ul>
           {cards.map((card) => (
-            <li key={card.id}>
+            <li key={card.id} style={{ marginBottom: "10px" }}>
               <input
                 type="checkbox"
                 checked={selectedCards.includes(card.id)}
                 onChange={() => toggleCardSelection(card.id)}
               />
-              {card.front} - {card.back}
+              {editingCardId === card.id ? (
+                <>
+                  <input
+                    type="text"
+                    value={editFront}
+                    onChange={(e) => setEditFront(e.target.value)}
+                  />
+                  <input
+                    type="text"
+                    value={editBack}
+                    onChange={(e) => setEditBack(e.target.value)}
+                  />
+                  <button onClick={() => saveEdit(card.id)}>保存</button>
+                </>
+              ) : (
+                <>
+                  {card.front} - {card.back}
+                  <button onClick={() => startEditing(card)} style={{ marginLeft: "10px" }}>
+                    修正
+                  </button>
+                </>
+              )}
             </li>
           ))}
         </ul>
-
-        <button onClick={deleteSelectedCards}>まとめて削除</button>
       </div>
-
-      <Link to="/">
-        <button>カード表示に戻る</button>
-      </Link>
     </div>
   );
 };
