@@ -94,6 +94,21 @@ const EditPage = ({ cards, setCards }) => {
     });
   };
 
+  const exportToCSV = () => {
+    const cardsData = cards.map(card => ({
+      front: card.front,
+      back: card.back,
+    }));
+
+    const csv = Papa.unparse(cardsData);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.download = "cards_export.csv"; // 任意のファイル名を指定
+    link.click();
+  };
+
   const startEditing = (card) => {
     setEditingCardId(card.id);
     setEditFront(card.front);
@@ -148,6 +163,7 @@ const EditPage = ({ cards, setCards }) => {
           <button onClick={deleteSelectedCards}>まとめて削除</button>
           <button onClick={selectAllCards} style={{ marginLeft: "10px" }}>全て選択</button>
           <button onClick={deselectAllCards} style={{ marginLeft: "10px" }}>選択解除</button>
+          <button onClick={exportToCSV} style={{ marginLeft: "10px" }}>CSVエクスポート</button>
         </div>
       </div>
 
