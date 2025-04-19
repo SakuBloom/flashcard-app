@@ -87,39 +87,47 @@ const EditPage = ({ cards, setCards }) => {
     <div className="edit-page">
       <h2>カードの編集</h2>
 
-      <div className="add-card">
+      <Link to="/" style={{ marginBottom: "10px", display: "block" }}>
+        <button>カード表示に戻る</button>
+      </Link>
+
+      <div className="manual-edit" style={{ marginBottom: "20px" }}>
+        <h3>手動編集</h3>
         <input
           type="text"
           placeholder="表面"
           value={newFront}
           onChange={(e) => setNewFront(e.target.value)}
+          style={{ marginBottom: "10px" }}
         />
         <input
           type="text"
           placeholder="裏面"
           value={newBack}
           onChange={(e) => setNewBack(e.target.value)}
+          style={{ marginBottom: "10px" }}
         />
-        <button onClick={addCard}>追加</button>
-
-        {/* CSVファイル選択ボタン */}
-        <input type="file" accept=".csv" onChange={handleCSVUpload} />
+        <button onClick={addCard} style={{ marginBottom: "10px" }}>追加</button>
       </div>
 
-      {/* カードリスト */}
-      <ul className="card-list">
-        {cards.map((card) => (
-          <li key={card.id}>
-            {card.front} - {card.back}
-            <button onClick={() => deleteCard(card.id)}>削除</button>
-          </li>
-        ))}
-      </ul>
+      <div className="csv-upload" style={{ marginBottom: "20px" }}>
+        <h3>CSV読込</h3>
+        <input type="file" accept=".csv" onChange={handleCSVUpload} style={{ marginBottom: "10px" }} />
+        {csvFile && <div>選択されたファイル: {csvFile.name}</div>}
+        <button onClick={handleCSVUpload} style={{ marginBottom: "10px" }}>アップロード</button>
+      </div>
 
-      {/* 戻るボタン */}
-      <Link to="/">
-        <button>カード表示に戻る</button>
-      </Link>
+      <div className="current-cards">
+        <h3>現在のカード一覧</h3>
+        <ul>
+          {cards.map((card) => (
+            <li key={card.id}>
+              {card.front} - {card.back}
+              <button onClick={() => deleteCard(card.id)} style={{ marginLeft: "10px" }}>削除</button>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 };
