@@ -18,10 +18,9 @@ const CardView = ({ cards, setCards }) => {
   const currentCard = shuffledCards[index];
 
   useEffect(() => {
-    // カード順をランダムにシャッフル
     if (cards.length > 0) {
       setShuffledCards([...cards].sort(() => Math.random() - 0.5));
-      setIndex(0); // 最初のカードに戻す
+      setIndex(0);
     }
   }, [cards]);
 
@@ -31,7 +30,6 @@ const CardView = ({ cards, setCards }) => {
     }
   }, [index, flipped, currentCard]);
 
-  // Firestoreからカードデータ取得
   useEffect(() => {
     const fetchCards = async () => {
       const cardsCollection = collection(db, "cards");
@@ -48,7 +46,6 @@ const CardView = ({ cards, setCards }) => {
       setIndex(index + 1);
       setFlipped(false);
     } else {
-      // 最後のカードに到達 → シャッフルしてリセット
       setShuffledCards([...cards].sort(() => Math.random() - 0.5));
       setIndex(0);
       setFlipped(false);
@@ -62,7 +59,6 @@ const CardView = ({ cards, setCards }) => {
     }
   };
 
-  // カードがない場合の表示
   if (!currentCard) {
     return (
       <div className="card-container">
@@ -75,19 +71,38 @@ const CardView = ({ cards, setCards }) => {
   }
 
   return (
-    <div className="card-container">
-      <div className="card" onClick={() => setFlipped(!flipped)}>
+    <div className="card-container" style={{ textAlign: "center", marginTop: "20px" }}>
+      <div
+        className="card"
+        onClick={() => setFlipped(!flipped)}
+        style={{
+          width: "700px",
+          height: "700px",
+          margin: "0 auto",
+          border: "2px solid #333",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: "10pt",
+          cursor: "pointer",
+          backgroundColor: "#f9f9f9",
+          userSelect: "none",
+          borderRadius: "12px"
+        }}
+      >
         {flipped ? currentCard.back : currentCard.front}
       </div>
-      <div className="card-navigation">
+
+      <div className="card-navigation" style={{ marginTop: "20px" }}>
         <p>{index + 1} / {shuffledCards.length}</p>
-        <div className="buttons">
+        <div className="buttons" style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
           <button onClick={prev}>← 戻る</button>
           <button onClick={next}>進む →</button>
         </div>
       </div>
+
       <Link to="/edit">
-        <button className="edit-button">編集</button>
+        <button className="edit-button" style={{ marginTop: "20px" }}>編集</button>
       </Link>
     </div>
   );
