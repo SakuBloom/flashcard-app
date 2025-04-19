@@ -7,6 +7,7 @@ import Papa from "papaparse"; // CSV読み込み用
 const EditPage = ({ cards, setCards }) => {
   const [newFront, setNewFront] = useState("");
   const [newBack, setNewBack] = useState("");
+  const [csvFile, setCsvFile] = useState(null); // CSVファイルの状態
 
   // Firestoreからカードデータを取得
   useEffect(() => {
@@ -50,22 +51,24 @@ const EditPage = ({ cards, setCards }) => {
     }
   };
 
-  // CSVファイルからカードを読み込む
+  // CSVファイル選択後にCSVをパースしてFirestoreに反映
   const handleCSVUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
+    setCsvFile(file); // ファイルをステートに保存
+
     Papa.parse(file, {
-      header: true,
       complete: async (results) => {
         const newCards = results.data
-          .filter(row => row.front && row.back)
+          .filter(row => row.front && row.back) // frontとbackが存在する行のみをフィルタリング
           .map(row => ({
             front: row.front,
             back: row.back,
             checked: false,
           }));
 
+        // Firestoreに新しいカードを追加
         for (const card of newCards) {
           try {
             const docRef = await addDoc(collection(db, "cards"), card);
@@ -75,12 +78,15 @@ const EditPage = ({ cards, setCards }) => {
           }
         }
       },
+      header: true,  // CSVにヘッダーがある場合
+      skipEmptyLines: true,  // 空行をスキップ
     });
   };
 
   return (
     <div className="edit-page">
       <h2>カードの編集</h2>
+
       <div className="add-card">
         <input
           type="text"
@@ -95,9 +101,12 @@ const EditPage = ({ cards, setCards }) => {
           onChange={(e) => setNewBack(e.target.value)}
         />
         <button onClick={addCard}>追加</button>
+
+        {/* CSVファイル選択ボタン */}
         <input type="file" accept=".csv" onChange={handleCSVUpload} />
       </div>
 
+      {/* カードリスト */}
       <ul className="card-list">
         {cards.map((card) => (
           <li key={card.id}>
@@ -107,6 +116,7 @@ const EditPage = ({ cards, setCards }) => {
         ))}
       </ul>
 
+      {/* 戻るボタン */}
       <Link to="/">
         <button>カード表示に戻る</button>
       </Link>
