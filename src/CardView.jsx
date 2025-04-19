@@ -76,14 +76,14 @@ const CardView = ({ cards, setCards }) => {
         className="card"
         onClick={() => setFlipped(!flipped)}
         style={{
-          width: "700px",
-          height: "700px",
+          width: "400px",
+          height: "400px",
           margin: "0 auto",
           border: "2px solid #333",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: "10pt",
+          fontSize: "18pt",
           cursor: "pointer",
           backgroundColor: "#f9f9f9",
           userSelect: "none",
