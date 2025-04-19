@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { db } from "./firebase";  // firebase.jsをインポート
+import { db } from "./firebase"; // firebase.jsをインポート
 import { collection, addDoc, deleteDoc, doc, getDocs } from "firebase/firestore";
+import Papa from "papaparse"; // CSV読み込み用
 
 const EditPage = ({ cards, setCards }) => {
   const [newFront, setNewFront] = useState("");
@@ -49,6 +50,34 @@ const EditPage = ({ cards, setCards }) => {
     }
   };
 
+  // CSVファイルからカードを読み込む
+  const handleCSVUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    Papa.parse(file, {
+      header: true,
+      complete: async (results) => {
+        const newCards = results.data
+          .filter(row => row.front && row.back)
+          .map(row => ({
+            front: row.front,
+            back: row.back,
+            checked: false,
+          }));
+
+        for (const card of newCards) {
+          try {
+            const docRef = await addDoc(collection(db, "cards"), card);
+            setCards(prev => [...prev, { id: docRef.id, ...card }]);
+          } catch (error) {
+            console.error("Error adding card from CSV: ", error);
+          }
+        }
+      },
+    });
+  };
+
   return (
     <div className="edit-page">
       <h2>カードの編集</h2>
@@ -66,6 +95,7 @@ const EditPage = ({ cards, setCards }) => {
           onChange={(e) => setNewBack(e.target.value)}
         />
         <button onClick={addCard}>追加</button>
+        <input type="file" accept=".csv" onChange={handleCSVUpload} />
       </div>
 
       <ul className="card-list">

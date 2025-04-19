@@ -9,21 +9,21 @@ import "./App.css";
 const App = () => {
   const [cards, setCards] = useState([]);
 
-  // 初回読み込み時にFirestoreからカードを取得
-  useEffect(() => {
-    const fetchCards = async () => {
-      const snapshot = await getDocs(cardCollection);
-      const fetchedCards = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setCards(fetchedCards);
-    };
+  // Firestoreからカードを取得
+  const fetchCards = async () => {
+    const snapshot = await getDocs(cardCollection);
+    const fetchedCards = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    setCards(fetchedCards);
+  };
 
+  useEffect(() => {
     fetchCards();
   }, []);
 
-  // カードをFirestoreに追加
+  // カードを追加
   const addCard = async (newCard) => {
     if (newCard.front && newCard.back) {
       await addDoc(cardCollection, {
@@ -31,27 +31,15 @@ const App = () => {
         back: newCard.back,
         checked: false,
       });
-      // Firestoreから最新データを取得
-      const snapshot = await getDocs(cardCollection);
-      const updatedCards = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setCards(updatedCards);
+      fetchCards(); // 再取得
     }
   };
 
-  // カードをFirestoreから削除
+  // カードを削除
   const deleteCard = async (id) => {
     const cardDoc = doc(db, "cards", id);
     await deleteDoc(cardDoc);
-    // Firestoreから最新データを取得
-    const snapshot = await getDocs(cardCollection);
-    const updatedCards = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-    setCards(updatedCards);
+    fetchCards(); // 再取得
   };
 
   return (
@@ -70,7 +58,13 @@ const App = () => {
         />
         <Route
           path="/edit"
-          element={<EditPage cards={cards} setCards={setCards} addCard={addCard} />}
+          element={
+            <EditPage
+              cards={cards}
+              setCards={setCards}
+              addCard={addCard}
+            />
+          }
         />
       </Routes>
     </Router>
