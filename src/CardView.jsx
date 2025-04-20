@@ -3,20 +3,45 @@ import { Link, useNavigate } from "react-router-dom";
 import { db } from "./firebase";
 import { collection, getDocs } from "firebase/firestore";
 
-const speak = (text) => {
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = /[^\x00-\x7F]/.test(text) ? "ja-JP" : "en-US";
-  speechSynthesis.cancel();
-  speechSynthesis.speak(utterance);
-};
-
 const CardView = ({ cards, setCards }) => {
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [shuffledCards, setShuffledCards] = useState([]);
+  const [voices, setVoices] = useState([]);
   const navigate = useNavigate();
 
   const currentCard = shuffledCards[index];
+
+  // 音声をロードする
+  useEffect(() => {
+    const loadVoices = () => {
+      const availableVoices = speechSynthesis.getVoices();
+      if (availableVoices.length) {
+        setVoices(availableVoices);
+      }
+    };
+
+    loadVoices();
+
+    // iOSや一部ブラウザでは onvoiceschanged が必要
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+  }, []);
+
+  const speakText = (text) => {
+    const utterance = new SpeechSynthesisUtterance(text);
+    const isJapanese = /[^\x00-\x7F]/.test(text);
+    const lang = isJapanese ? "ja-JP" : "en-US";
+
+    utterance.lang = lang;
+
+    const selectedVoice = voices.find((v) => v.lang === lang);
+    if (selectedVoice) {
+      utterance.voice = selectedVoice;
+    }
+
+    speechSynthesis.cancel();
+    speechSynthesis.speak(utterance);
+  };
 
   useEffect(() => {
     if (cards.length > 0) {
@@ -26,16 +51,19 @@ const CardView = ({ cards, setCards }) => {
   }, [cards]);
 
   useEffect(() => {
-    if (currentCard) {
-      speak(flipped ? currentCard.back : currentCard.front);
+    if (currentCard && voices.length > 0) {
+      speakText(flipped ? currentCard.back : currentCard.front);
     }
-  }, [index, flipped, currentCard]);
+  }, [index, flipped, currentCard, voices]);
 
   useEffect(() => {
     const fetchCards = async () => {
       const cardsCollection = collection(db, "cards");
       const snapshot = await getDocs(cardsCollection);
-      const fetchedCards = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const fetchedCards = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
       setCards(fetchedCards);
     };
 
@@ -73,7 +101,9 @@ const CardView = ({ cards, setCards }) => {
     return (
       <div className="card-container">
         <div>カードがありません</div>
-        <button className="edit-button" onClick={handleEditClick}>編集</button>
+        <button className="edit-button" onClick={handleEditClick}>
+          編集
+        </button>
       </div>
     );
   }
