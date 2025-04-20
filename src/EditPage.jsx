@@ -7,10 +7,12 @@ import Papa from "papaparse";
 const EditPage = ({ cards, setCards }) => {
   const [newFront, setNewFront] = useState("");
   const [newBack, setNewBack] = useState("");
+  const [newImage, setNewImage] = useState("");
   const [selectedCards, setSelectedCards] = useState([]);
   const [editingCardId, setEditingCardId] = useState(null);
   const [editFront, setEditFront] = useState("");
   const [editBack, setEditBack] = useState("");
+  const [editImage, setEditImage] = useState("");
 
   useEffect(() => {
     const fetchCards = async () => {
@@ -26,11 +28,12 @@ const EditPage = ({ cards, setCards }) => {
   const addCard = async () => {
     if (newFront && newBack) {
       try {
-        const newCard = { front: newFront, back: newBack, checked: false };
+        const newCard = { front: newFront, back: newBack, image: newImage, checked: false };
         const docRef = await addDoc(collection(db, "cards"), newCard);
         setCards([...cards, { id: docRef.id, ...newCard }]);
         setNewFront("");
         setNewBack("");
+        setNewImage("");
       } catch (error) {
         console.error("Error adding card: ", error);
       }
@@ -79,6 +82,7 @@ const EditPage = ({ cards, setCards }) => {
           .map(row => ({
             front: row.front,
             back: row.back,
+            image: row.image || "",
             checked: false,
           }));
 
@@ -98,6 +102,7 @@ const EditPage = ({ cards, setCards }) => {
     const cardsData = cards.map(card => ({
       front: card.front,
       back: card.back,
+      image: card.image || "",
     }));
 
     const csv = Papa.unparse(cardsData);
@@ -105,7 +110,7 @@ const EditPage = ({ cards, setCards }) => {
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.href = url;
-    link.download = "cards_export.csv"; // 任意のファイル名を指定
+    link.download = "cards_export.csv";
     link.click();
   };
 
@@ -113,14 +118,15 @@ const EditPage = ({ cards, setCards }) => {
     setEditingCardId(card.id);
     setEditFront(card.front);
     setEditBack(card.back);
+    setEditImage(card.image || "");
   };
 
   const saveEdit = async (id) => {
     try {
       const cardDoc = doc(db, "cards", id);
-      await updateDoc(cardDoc, { front: editFront, back: editBack });
+      await updateDoc(cardDoc, { front: editFront, back: editBack, image: editImage });
       setCards(cards.map(card =>
-        card.id === id ? { ...card, front: editFront, back: editBack } : card
+        card.id === id ? { ...card, front: editFront, back: editBack, image: editImage } : card
       ));
       setEditingCardId(null);
     } catch (error) {
@@ -130,7 +136,6 @@ const EditPage = ({ cards, setCards }) => {
 
   return (
     <div className="edit-page" style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
-      {/* 固定ヘッダー */}
       <div className="header" style={{
         position: "sticky",
         top: 0,
@@ -154,11 +159,15 @@ const EditPage = ({ cards, setCards }) => {
             value={newBack}
             onChange={(e) => setNewBack(e.target.value)}
           />
+          <input
+            type="text"
+            placeholder="画像URL（任意）"
+            value={newImage}
+            onChange={(e) => setNewImage(e.target.value)}
+          />
           <button onClick={addCard}>追加</button>
           <input type="file" accept=".csv" onChange={handleCSVUpload} />
         </div>
-
-        {/* ボタンを修正・追加 */}
         <div style={{ marginTop: "10px" }}>
           <button onClick={deleteSelectedCards}>まとめて削除</button>
           <button onClick={selectAllCards} style={{ marginLeft: "10px" }}>全て選択</button>
@@ -167,7 +176,6 @@ const EditPage = ({ cards, setCards }) => {
         </div>
       </div>
 
-      {/* スクロール可能なカード一覧 */}
       <div className="card-list" style={{
         overflowY: "auto",
         flexGrow: 1,
@@ -193,11 +201,17 @@ const EditPage = ({ cards, setCards }) => {
                     value={editBack}
                     onChange={(e) => setEditBack(e.target.value)}
                   />
+                  <input
+                    type="text"
+                    value={editImage}
+                    onChange={(e) => setEditImage(e.target.value)}
+                    placeholder="画像URL"
+                  />
                   <button onClick={() => saveEdit(card.id)}>保存</button>
                 </>
               ) : (
                 <>
-                  {card.front} - {card.back}
+                  {card.front} - {card.back} {card.image && `（画像: ${card.image}）`}
                   <button onClick={() => startEditing(card)} style={{ marginLeft: "10px" }}>
                     修正
                   </button>

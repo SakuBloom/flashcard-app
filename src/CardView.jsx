@@ -76,21 +76,32 @@ const CardView = ({ cards, setCards }) => {
         className="card"
         onClick={() => setFlipped(!flipped)}
         style={{
-          width: "300px",
-          height: "300px",
+          width: "400px",
+          height: "400px",
           margin: "0 auto",
           border: "2px solid #333",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: "16pt",
+          fontSize: "10pt",
           cursor: "pointer",
           backgroundColor: "#f9f9f9",
           userSelect: "none",
-          borderRadius: "12px"
+          borderRadius: "12px",
+          overflow: "hidden"
         }}
       >
-        {flipped ? currentCard.back : currentCard.front}
+        {flipped ? (
+          currentCard.back
+        ) : currentCard.image ? (
+          <img
+            src={currentCard.image}
+            alt="card front"
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
+        ) : (
+          currentCard.front
+        )}
       </div>
 
       <div className="card-navigation" style={{ marginTop: "20px" }}>
