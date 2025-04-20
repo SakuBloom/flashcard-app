@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { db } from "./firebase";
 import { collection, getDocs } from "firebase/firestore";
 
@@ -14,6 +14,7 @@ const CardView = ({ cards, setCards }) => {
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [shuffledCards, setShuffledCards] = useState([]);
+  const navigate = useNavigate();
 
   const currentCard = shuffledCards[index];
 
@@ -59,13 +60,20 @@ const CardView = ({ cards, setCards }) => {
     }
   };
 
+  const handleEditClick = () => {
+    const password = prompt("パスワードを入力してください:");
+    if (password === "0816") {
+      navigate("/edit");
+    } else if (password !== null) {
+      alert("パスワードが間違っています。");
+    }
+  };
+
   if (!currentCard) {
     return (
       <div className="card-container">
         <div>カードがありません</div>
-        <Link to="/edit">
-          <button className="edit-button">編集</button>
-        </Link>
+        <button className="edit-button" onClick={handleEditClick}>編集</button>
       </div>
     );
   }
@@ -97,7 +105,7 @@ const CardView = ({ cards, setCards }) => {
           <img
             src={currentCard.image}
             alt="card front"
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            style={{ width: "100%", height: "100%", objectFit: "contain" }}
           />
         ) : (
           currentCard.front
@@ -112,9 +120,9 @@ const CardView = ({ cards, setCards }) => {
         </div>
       </div>
 
-      <Link to="/edit">
-        <button className="edit-button" style={{ marginTop: "20px" }}>編集</button>
-      </Link>
+      <button className="edit-button" style={{ marginTop: "20px" }} onClick={handleEditClick}>
+        編集
+      </button>
     </div>
   );
 };
