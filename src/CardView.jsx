@@ -12,9 +12,9 @@ const loadVoices = () => {
 
     const checkVoices = () => {
       voices = synth.getVoices();
-      if (voices.length !== 0) {
-        resolve(voices);
+      if (voices.length > 0) {
         clearInterval(id);
+        resolve(voices);
       }
     };
 
@@ -22,33 +22,23 @@ const loadVoices = () => {
   });
 };
 
-const getPreferredVoice = (voices, lang) => {
-  const preferredVoiceNames = {
-    "ja-JP": ["Kyoko", "Otoya"],
-    "en-US": ["Samantha", "Karen", "Daniel", "Google US English"]
-  };
-
-  const preferred = preferredVoiceNames[lang] || [];
-  return (
-    voices.find((v) => preferred.includes(v.name)) ||
-    voices.find((v) => v.lang === lang) ||
-    null
-  );
-};
-
 const speakText = async (text) => {
-  const isJapanese = /[^\x00-\x7F]/.test(text);
-  const lang = isJapanese ? "ja-JP" : "en-US";
-
-  if (voices.length === 0) {
-    await loadVoices();
-  }
+  if (!text) return;
+  await loadVoices();
 
   const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = lang;
+  const isJapanese = /[^\x00-\x7F]/.test(text);
+  utterance.lang = isJapanese ? "ja-JP" : "en-US";
 
-  const voice = getPreferredVoice(voices, lang);
-  if (voice) utterance.voice = voice;
+  // 声を設定（自然な声を優先）
+  const preferredVoice = voices.find((v) =>
+    isJapanese
+      ? v.lang === "ja-JP" && v.name.includes("Google")
+      : v.lang.startsWith("en") && v.name.includes("Google")
+  );
+  if (preferredVoice) {
+    utterance.voice = preferredVoice;
+  }
 
   speechSynthesis.cancel();
   speechSynthesis.speak(utterance);
@@ -63,35 +53,41 @@ const CardView = ({ cards, setCards }) => {
   const currentCard = shuffledCards[index];
 
   useEffect(() => {
-    if (cards.length > 0) {
-      setShuffledCards([...cards].sort(() => Math.random() - 0.5));
-      setIndex(0);
-    }
-  }, [cards]);
-
-  useEffect(() => {
-    if (currentCard) {
-      speakText(flipped ? currentCard.back : currentCard.front);
-    }
-  }, [index, flipped, currentCard]);
-
-  useEffect(() => {
     const fetchCards = async () => {
       const cardsCollection = collection(db, "cards");
       const snapshot = await getDocs(cardsCollection);
-      const fetchedCards = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const fetchedCards = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
       setCards(fetchedCards);
     };
 
     fetchCards();
   }, [setCards]);
 
+  useEffect(() => {
+    if (cards.length > 0) {
+      const shuffled = [...cards].sort(() => Math.random() - 0.5);
+      setShuffledCards(shuffled);
+      setIndex(0);
+    }
+  }, [cards]);
+
+  useEffect(() => {
+    if (currentCard && (currentCard.front || currentCard.back)) {
+      const text = flipped ? currentCard.back : currentCard.front;
+      speakText(text.trim());
+    }
+  }, [index, flipped, currentCard]);
+
   const next = () => {
     if (index < shuffledCards.length - 1) {
       setIndex(index + 1);
       setFlipped(false);
     } else {
-      setShuffledCards([...cards].sort(() => Math.random() - 0.5));
+      const reshuffled = [...cards].sort(() => Math.random() - 0.5);
+      setShuffledCards(reshuffled);
       setIndex(0);
       setFlipped(false);
     }
@@ -117,13 +113,18 @@ const CardView = ({ cards, setCards }) => {
     return (
       <div className="card-container">
         <div>カードがありません</div>
-        <button className="edit-button" onClick={handleEditClick}>編集</button>
+        <button className="edit-button" onClick={handleEditClick}>
+          編集
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="card-container" style={{ textAlign: "center", marginTop: "20px" }}>
+    <div
+      className="card-container"
+      style={{ textAlign: "center", marginTop: "20px" }}
+    >
       <div
         className="card"
         onClick={() => setFlipped(!flipped)}
@@ -140,7 +141,7 @@ const CardView = ({ cards, setCards }) => {
           backgroundColor: "#f9f9f9",
           userSelect: "none",
           borderRadius: "12px",
-          overflow: "hidden"
+          overflow: "hidden",
         }}
       >
         {flipped ? (
@@ -157,14 +158,27 @@ const CardView = ({ cards, setCards }) => {
       </div>
 
       <div className="card-navigation" style={{ marginTop: "20px" }}>
-        <p>{index + 1} / {shuffledCards.length}</p>
-        <div className="buttons" style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
+        <p>
+          {index + 1} / {shuffledCards.length}
+        </p>
+        <div
+          className="buttons"
+          style={{
+            display: "flex",
+            gap: "10px",
+            justifyContent: "center",
+          }}
+        >
           <button onClick={prev}>← 戻る</button>
           <button onClick={next}>進む →</button>
         </div>
       </div>
 
-      <button className="edit-button" style={{ marginTop: "20px" }} onClick={handleEditClick}>
+      <button
+        className="edit-button"
+        style={{ marginTop: "20px" }}
+        onClick={handleEditClick}
+      >
         編集
       </button>
     </div>
